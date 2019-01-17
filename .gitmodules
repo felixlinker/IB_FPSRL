@@ -1,0 +1,3 @@
+[submodule "industrialbenchmark"]
+	path = industrialbenchmark
+	url = https://github.com/siemens/industrialbenchmark.git
