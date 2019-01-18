@@ -1,0 +1,10 @@
+{
+    "seed": 3156498897,
+    "min_block_size": 90,
+    "max_block_size": 120,
+    "future_window": 50,
+    "past_window": 10,
+    "output_fuel": true,
+    "output_cost": false,
+    "output": "./data/f_blocks.npz"
+}
