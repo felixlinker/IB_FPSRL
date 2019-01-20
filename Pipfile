@@ -12,6 +12,7 @@ rope = "*"
 keras = "*"
 tensorflow = "*"
 numpy = "*"
+pyswarms = "*"
 
 [requires]
 python_version = "3.6"
