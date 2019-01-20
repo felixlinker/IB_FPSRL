@@ -4,26 +4,34 @@ from keras import layers, backend
 from keras.models import Model
 from keras.layers import Dense, Input, ZeroPadding1D
 from tensorflow import Tensor
-import numpy
+import numpy as np
 from argparse import ArgumentParser
-import json
+from misc.dicts import load_cfg
+import os
 
 parser = ArgumentParser(description='Create and train a neural net for a world model')
 parser.add_argument('cfg_file')
 args = parser.parse_args()
+cfg = load_cfg(args.cfg_file)
 
-with open(args.cfg_file) as fp:
-    cfg = json.load(fp)
+training_data = np.load(cfg['data_output_file'])
+training_input = [np.zeros((len(training_data), 1))] + [ e for t in zip(
+    np.swapaxes(training_data['z'], 0, 1),
+    np.swapaxes(training_data['a'], 0, 1)
+) for e in t ]
+training_output = list(np.swapaxes(training_data['y'], 0, 1))
 
-Z_DIM = cfg['z_dim']
+Z_DIM = np.shape(training_data.dtype[0])[1]
 assert 0 < Z_DIM
-A_DIM = cfg['a_dim']
+A_DIM = np.shape(training_data.dtype[1])[1]
 assert 0 < A_DIM
 
-UNROLL_PAST = cfg['unroll_p']
+UNROLL_PAST = cfg['past_window']
 assert 1 < UNROLL_PAST
-UNROLL_FUTURE = cfg['unroll_f']
+UNROLL_FUTURE = cfg['future_window']
 assert 1 < UNROLL_FUTURE
+for i in range(3):
+    assert np.shape(training_data.dtype[i])[0] == UNROLL_PAST + UNROLL_FUTURE
 
 # note: paper doesn't mention specific activation functions
 s_t_layer = Dense(1, activation='sigmoid')
@@ -68,3 +76,15 @@ def red_f_layers(i_list: list, o_list: list, o: Tensor) -> FLayers:
 )
 
 model = Model(inputs=inputs, outputs=outputs)
+model.compile(optimizer='sgd', loss='mean_squared_error')
+print("Starting training")
+model.fit(training_input, training_output, verbose=1)
+print("Serializing trained model")
+
+write_to = cfg['model_output_file']
+dirs, _ = os.path.split(write_to)
+try:
+    os.makedirs(dirs)
+except FileExistsError:
+    pass
+model.save(write_to)

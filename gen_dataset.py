@@ -5,8 +5,7 @@ import IDS
 import numpy as np
 from itertools import islice
 import argparse
-import json
-
+from misc.dicts import load_cfg
 
 class BenchmarkTrajectory:
     def __init__(self, length: int, hypervars: int, seed: int):
@@ -40,30 +39,28 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create a .npz file containing training data blocks')
     parser.add_argument('cfg_file')
     args = parser.parse_args()
+    cfg = load_cfg(args.cfg_file)
 
-    with open(args.cfg_file) as fp:
-        cfg = json.load(fp)
-
-    PAST_LENGTH = cfg.get('past_window', 30)
+    PAST_LENGTH = cfg['past_window']
     assert 0 < PAST_LENGTH
-    FUTURE_LENGTH = cfg.get('future_window', 30)
+    FUTURE_LENGTH = cfg['future_window']
     assert 0 < FUTURE_LENGTH
     WINDOW_LENGTH = PAST_LENGTH + FUTURE_LENGTH
 
-    BLOCKSIZE_MIN = cfg.get('min_block_size', 90)
+    BLOCKSIZE_MIN = cfg['min_block_size']
     assert 0 < BLOCKSIZE_MIN
     assert WINDOW_LENGTH <= BLOCKSIZE_MIN
-    BLOCKSIZE_MAX = cfg.get('max_block_size', 120)
+    BLOCKSIZE_MAX = cfg['max_block_size']
     assert BLOCKSIZE_MIN <= BLOCKSIZE_MAX
     def random_blocksize():
         return int(BLOCKSIZE_MIN + (BLOCKSIZE_MAX - BLOCKSIZE_MIN) * np.random.rand())
 
-    HYPERVARS = cfg.get('init_setpoints', range(10, 101, 10))
+    HYPERVARS = cfg['init_setpoints']
     N_HYPERVARS = len(HYPERVARS)
     assert 0 < N_HYPERVARS
-    TRAJECTORIES = cfg.get('trajectories_num', 10)
+    TRAJECTORIES = cfg['trajectories_num']
     assert 0 < TRAJECTORIES
-    TRAJECTORY_LENGTH = cfg.get('trajectories_length', 1000)
+    TRAJECTORY_LENGTH = cfg['trajectories_length']
     assert 0 < TRAJECTORY_LENGTH
 
     OUTPUT_FUEL = cfg.get('output_fuel', False)
