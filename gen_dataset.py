@@ -36,7 +36,7 @@ class BenchmarkTrajectory:
         return np.array(state[4:6])  # f, c
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create a .npz file containing training data blocks')
     parser.add_argument('cfg_file')
     args = parser.parse_args()
@@ -66,20 +66,42 @@ if __name__ == "__main__":
     TRAJECTORY_LENGTH = cfg.get('trajectories_length', 1000)
     assert 0 < TRAJECTORY_LENGTH
 
-    OUTPUT_FUEL = cfg['output_fuel']
-    OUTPUT_COST = cfg['output_cost']
-    assert OUTPUT_FUEL or OUTPUT_COST  # we need at least one output
+    OUTPUT_FUEL = cfg.get('output_fuel', False)
+    OUTPUT_CONSUMPTION = cfg.get('output_consumption', False)
+    assert OUTPUT_FUEL or OUTPUT_CONSUMPTION, 'at least one output must be given'
+    assert not OUTPUT_FUEL or not OUTPUT_CONSUMPTION, 'only one output is supported'
 
-    SEED = cfg.get('seed', None)
+    SELF_INPUT_FUEL = cfg.get('self_input_fuel', False)
+    SELF_INPUT_CONSUMPTION = cfg.get('self_input_consumption', False)
 
-    block_num = 0
-    data_blocks = {}
+    SEED = cfg['seed']
+
+    block_sizes = [ [ [] for _ in range(TRAJECTORIES) ] for _ in range(N_HYPERVARS) ]
+    global_windows_num = 0
+    for hypervar_trajectories in block_sizes:
+        for trajectory_sizes in hypervar_trajectories:
+            datapoints_num = TRAJECTORY_LENGTH
+            block_size = random_blocksize()
+            while 0 < datapoints_num - block_size:
+                trajectory_sizes.append(block_size)
+                global_windows_num += block_size - (PAST_LENGTH + FUTURE_LENGTH) + 1
+                datapoints_num -= block_size
+                block_size = random_blocksize()
+
+    data_blocks = np.empty(
+        (global_windows_num,), dtype=[
+            ('z', 'f4', (WINDOW_LENGTH, 2)),
+            ('a', 'f4', (WINDOW_LENGTH, 3)),
+            ('y', 'f4', (WINDOW_LENGTH, 1))
+        ]
+    )
+
+    block_i = 0
     for i, h_num in enumerate(HYPERVARS):
-        for k in range(TRAJECTORIES):
+        for j in range(TRAJECTORIES):
             env = BenchmarkTrajectory(TRAJECTORY_LENGTH, h_num, SEED)
 
-            while not env.empty():
-                blocksize = random_blocksize()
+            for blocksize in block_sizes[i][j]:
                 data_block = np.array(list(islice(env, blocksize)))  # get block-many data points
                 inputs, outputs = np.hsplit(data_block, [4])  # split at index for f
 
@@ -91,23 +113,34 @@ if __name__ == "__main__":
                 windows = np.arange(WINDOW_LENGTH) + np.arange(windows_num).reshape(windows_num, 1)
                 p_windows, f_windows = np.hsplit(windows, [PAST_LENGTH])
                 p_windows = inputs[p_windows]
-                p_windows = p_windows.reshape(len(p_windows), -1)  # flatten inner lists
+                p_z_windows, p_a_windows = np.split(p_windows, [1], axis=2)
                 f_windows = inputs[f_windows]
-                f_windows[:,:,0] = 0  # set first value of all future data points to zero
-                f_windows = f_windows.reshape(len(f_windows), -1)  # flatten inner lists
-                input_windows = np.concatenate((p_windows, f_windows), axis=1)
+                f_z_windows = np.zeros((windows_num, FUTURE_LENGTH, 1))
+                _, f_a_windows = np.split(f_windows, [1], axis=2)
+                z_windows = np.append(p_z_windows, f_z_windows, axis=1)
+                a_windows = np.append(p_a_windows, f_a_windows, axis=1)
 
                 output_windows = outputs[windows]
-                fuel_output, cost_output = np.split(output_windows, 2, axis=2)
-                if not OUTPUT_FUEL:  # => OUTPUT_COST
-                    output_windows = cost_output.reshape(len(cost_output), -1)
-                elif not OUTPUT_COST:  # => OUTPUT_FUEL
-                    output_windows = fuel_output.reshape(len(fuel_output), -1)
-                else:  # => OUTPUT_COST && OUTPUT_FUEL
-                    output_windows = output_windows.reshape(len(output_windows), -1)
+                fuel_output, consumption_output = np.split(output_windows, 2, axis=2)
+                if OUTPUT_FUEL:
+                    output_windows = fuel_output
+                    to_insert = 0 if not SELF_INPUT_FUEL else fuel_output.reshape(windows_num, WINDOW_LENGTH)
+                    z_windows = np.insert(z_windows, 1, to_insert, axis=2)
+                elif OUTPUT_CONSUMPTION:
+                    output_windows = consumption_output
+                    to_insert = 0 if not SELF_INPUT_CONSUMPTION else consumption_output.reshape(windows_num, WINDOW_LENGTH)
+                    z_windows = np.insert(z_windows, 1, to_insert, axis=2)
 
-                data_blocks[f'input_{block_num}'] = input_windows
-                data_blocks[f'output_{block_num}'] = output_windows
-                block_num += 1
+                for k in range(windows_num):
+                    data_blocks[block_i] = (z_windows[k], a_windows[k], output_windows[k])
+                    block_i += 1
 
-    np.savez(cfg['output'], **data_blocks)
+    assert block_i == global_windows_num
+
+    write_to = cfg['data_output_file']
+    dirs, _ = os.path.split(write_to)
+    try:
+        os.makedirs(dirs)
+    except FileExistsError:
+        pass
+    np.save(write_to, data_blocks)

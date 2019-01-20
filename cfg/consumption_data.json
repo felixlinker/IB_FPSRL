@@ -1,0 +1,11 @@
+{
+    "seed": 3156498897,
+    "min_block_size": 120,
+    "max_block_size": 160,
+    "future_window": 50,
+    "past_window": 30,
+    "output_consumption": true,
+    "self_input_consumption": true,
+    "data_output_file": "./data/c_blocks.npy",
+    "model_output_file": "./models/c_model.h5"
+}

@@ -5,6 +5,7 @@
     "future_window": 50,
     "past_window": 10,
     "output_fuel": true,
-    "output_cost": false,
-    "output": "./data/f_blocks.npz"
+    "self_input_fuel": false,
+    "data_output_file": "./data/f_blocks.npy",
+    "model_output_file": "./models/f_model.h5"
 }
