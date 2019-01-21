@@ -35,11 +35,10 @@ class BenchmarkTrajectory:
         return np.array(state[4:6])  # f, c
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Create a .npz file containing training data blocks')
-    parser.add_argument('cfg_file')
-    args = parser.parse_args()
-    cfg = load_cfg(args.cfg_file)
+def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
+    write_to = cfg['data_output_file']
+    if os.path.isfile(write_to) and not clean:
+        return np.load(write_to)
 
     PAST_LENGTH = cfg['past_window']
     assert 0 < PAST_LENGTH
@@ -134,10 +133,18 @@ if __name__ == '__main__':
 
     assert block_i == global_windows_num
 
-    write_to = cfg['data_output_file']
     dirs, _ = os.path.split(write_to)
     try:
         os.makedirs(dirs)
     except FileExistsError:
         pass
     np.save(write_to, data_blocks)
+
+    return data_blocks
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Create a .npz file containing training data blocks')
+    parser.add_argument('cfg_file')
+    args = parser.parse_args()
+    cfg = load_cfg(args.cfg_file)
+    generate_dataset(cfg)
