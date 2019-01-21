@@ -145,6 +145,7 @@ def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create a .npz file containing training data blocks')
     parser.add_argument('cfg_file')
+    parser.add_argument('-c', '--clean', action='store_true')
     args = parser.parse_args()
     cfg = load_cfg(args.cfg_file)
-    generate_dataset(cfg)
+    generate_dataset(cfg, args.clean)

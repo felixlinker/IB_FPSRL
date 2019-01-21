@@ -93,6 +93,7 @@ def generate_world_model(cfg: dict, clean: bool = False) -> Model:
 if __name__ == "__main__":
     parser = ArgumentParser(description='Create and train a neural net for a world model')
     parser.add_argument('cfg_file')
+    parser.add_argument('-c', '--clean', action='store_true')
     args = parser.parse_args()
     cfg = load_cfg(args.cfg_file)
-    generate_world_model(cfg)
+    generate_world_model(cfg, args.clean)
