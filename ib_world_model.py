@@ -14,17 +14,19 @@ def generate_world_model(cfg: dict, clean: bool = False) -> Model:
     if os.path.isfile(write_to) and not clean:
         return load_model(write_to)
 
-    training_data = np.load(cfg['data_output_file'])
-    training_input = [np.zeros((len(training_data), 1))] + [ e for t in zip(
-        np.swapaxes(training_data['z'], 0, 1),
-        np.swapaxes(training_data['a'], 0, 1)
-    ) for e in t ]
-    training_output = list(np.swapaxes(training_data['y'], 0, 1))
+    STATE_DIM = cfg['state_dim']
 
+    training_data = np.load(cfg['data_output_file'])
     Z_DIM = np.shape(training_data.dtype[0])[1]
     assert 0 < Z_DIM
     A_DIM = np.shape(training_data.dtype[1])[1]
     assert 0 < A_DIM
+
+    training_input = [np.zeros((len(training_data), STATE_DIM))] + [ e for t in zip(
+        np.swapaxes(training_data['z'], 0, 1),
+        np.swapaxes(training_data['a'], 0, 1)
+    ) for e in t ]
+    training_output = list(np.swapaxes(training_data['y'], 0, 1))
 
     UNROLL_PAST = cfg['past_window']
     assert 0 < UNROLL_PAST
@@ -34,9 +36,9 @@ def generate_world_model(cfg: dict, clean: bool = False) -> Model:
         assert np.shape(training_data.dtype[i])[0] == UNROLL_PAST + UNROLL_FUTURE
 
     # note: paper doesn't mention specific activation functions
-    s_t_layer = Dense(1, activation='sigmoid')
-    si_t_layer= Dense(1, activation='sigmoid')
-    y_t_layer = Dense(1, activation='sigmoid')
+    s_t_layer = Dense(STATE_DIM, activation='tanh')
+    si_t_layer= Dense(STATE_DIM, activation='tanh')
+    y_t_layer = Dense(1, activation='tanh')
 
     def build_layer_block(s_t_input: Tensor, z_t_input: Tensor, a_t_input: Tensor) -> Tensor:
         s_t = s_t_layer(layers.concatenate([s_t_input, z_t_input]))
@@ -53,7 +55,7 @@ def generate_world_model(cfg: dict, clean: bool = False) -> Model:
         o_list.append(y_t)
         return (i_list, o_list, si_t)
 
-    initial_input = Input(shape=(1,))
+    initial_input = Input(shape=(STATE_DIM,))
     (inputs, outputs, s0) = reduce(
         lambda aggregator, _: red_p_layers(*aggregator),
         range(UNROLL_PAST),
@@ -63,7 +65,7 @@ def generate_world_model(cfg: dict, clean: bool = False) -> Model:
     FLayers = Tuple[list, list, Tensor]
     def red_f_layers(i_list: list, o_list: list, o: Tensor) -> FLayers:
         z_t_input = Input(shape=(Z_DIM,))
-        a_t_input = Input(shape=(3,))
+        a_t_input = Input(shape=(A_DIM,))
         i_list.extend([z_t_input, a_t_input])
         y_t, si_t = build_layer_block(o, z_t_input, a_t_input)
         o_list.append(y_t)

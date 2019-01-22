@@ -9,6 +9,7 @@ DEFAULT_CFG = {
     'max_block_size': 120,
     'trajectories_num': 10,
     'trajectories_length': 1000,
+    'state_dim': 20,
     'output_fuel': False,
     'self_input_fuel': False,
     'output_consumption': False,
