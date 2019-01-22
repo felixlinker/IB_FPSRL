@@ -1,6 +1,6 @@
 import sys
 import os  # allow import of IDS from submodule
-sys.path.insert(0, os.path.join(os.getcwd(), 'industrialbenchmark\\industrial_benchmark_python'))
+sys.path.insert(0, os.path.join(os.getcwd(), 'industrialbenchmark/industrial_benchmark_python'))
 import IDS
 import numpy as np
 from itertools import islice
