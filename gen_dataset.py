@@ -43,7 +43,7 @@ def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
     PAST_LENGTH = cfg['past_window']
     assert 0 < PAST_LENGTH
     FUTURE_LENGTH = cfg['future_window']
-    assert 0 < FUTURE_LENGTH
+    assert 0 <= FUTURE_LENGTH
     WINDOW_LENGTH = PAST_LENGTH + FUTURE_LENGTH
 
     BLOCKSIZE_MIN = cfg['min_block_size']

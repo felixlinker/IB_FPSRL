@@ -27,9 +27,9 @@ def generate_world_model(cfg: dict, clean: bool = False) -> Model:
     assert 0 < A_DIM
 
     UNROLL_PAST = cfg['past_window']
-    assert 1 < UNROLL_PAST
+    assert 0 < UNROLL_PAST
     UNROLL_FUTURE = cfg['future_window']
-    assert 1 < UNROLL_FUTURE
+    assert 0 <= UNROLL_FUTURE
     for i in range(3):
         assert np.shape(training_data.dtype[i])[0] == UNROLL_PAST + UNROLL_FUTURE
 
