@@ -66,10 +66,10 @@ def generate_world_model(cfg, clean = False):
     model.add(RNN(cell, return_sequences=True))
 
     print('Starting training')
-    for lr in map(lambda exp: 0.1 * (0.5 ** exp), range(5)):
-        sgd = optimizers.SGD(lr=lr)
-        model.compile(optimizer=sgd, loss='mean_squared_error')
-        model.fit(training_input, training_output, verbose=1, epochs=5)
+    for lr in map(lambda exp: 0.05 * (0.5 ** exp), range(10)):
+        opt = optimizers.RMSprop(lr=lr)
+        model.compile(optimizer=opt, loss='mean_squared_error')
+        model.fit(training_input, training_output, verbose=1)
 
     print('Serializing trained model')
     dirs, _ = os.path.split(write_to)
