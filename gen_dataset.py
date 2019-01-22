@@ -88,9 +88,10 @@ def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
                 datapoints_num -= block_size
                 block_size = random_blocksize()
 
+    has_self_input = (OUTPUT_FUEL and SELF_INPUT_FUEL) or (OUTPUT_CONSUMPTION and SELF_INPUT_CONSUMPTION)
     data_blocks = np.empty(
         (global_windows_num,), dtype=[
-            ('z', 'f4', (WINDOW_LENGTH, BenchmarkTrajectory.z_dim + 1)),  # +1 for self input
+            ('z', 'f4', (WINDOW_LENGTH, BenchmarkTrajectory.z_dim + (1 if has_self_input else 0))),
             ('a', 'f4', (WINDOW_LENGTH, BenchmarkTrajectory.a_dim)),
             ('y', 'f4', (WINDOW_LENGTH, 1))
         ]
@@ -124,12 +125,22 @@ def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
                 fuel_output, consumption_output = np.split(output_windows, 2, axis=2)
                 if OUTPUT_FUEL:
                     output_windows = fuel_output
-                    to_insert = 0 if not SELF_INPUT_FUEL else fuel_output.reshape(windows_num, WINDOW_LENGTH)
-                    z_windows = np.insert(z_windows, env.z_dim, to_insert, axis=2)
+                    if SELF_INPUT_FUEL:
+                        z_windows = np.insert(
+                            z_windows,
+                            env.z_dim,
+                            fuel_output.reshape(windows_num, WINDOW_LENGTH),
+                            axis=2
+                        )
                 elif OUTPUT_CONSUMPTION:
                     output_windows = consumption_output
-                    to_insert = 0 if not SELF_INPUT_CONSUMPTION else consumption_output.reshape(windows_num, WINDOW_LENGTH)
-                    z_windows = np.insert(z_windows, env.z_dim, to_insert, axis=2)
+                    if SELF_INPUT_FUEL:
+                        z_windows = np.insert(
+                            z_windows,
+                            env.z_dim,
+                            consumption_output.reshape(windows_num, WINDOW_LENGTH),
+                            axis=2
+                        )
 
                 for k in range(windows_num):
                     data_blocks[block_i] = (z_windows[k], a_windows[k], output_windows[k])
