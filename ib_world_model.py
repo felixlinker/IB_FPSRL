@@ -11,6 +11,7 @@ class S_RNNCell(Layer):
     def __init__(self, units, state_size, z_dim, a_dim, **kwargs):
         self.units = units
         self.state_size = state_size
+        self.output_size = units
         self.z_dim = z_dim
         self.a_dim = a_dim
         super().__init__(**kwargs)
