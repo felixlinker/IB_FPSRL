@@ -7,8 +7,7 @@
         "max_block_size": 160
     },
     "data": {
-        "output_consumption": true,
-        "self_input_consumption": true
+        "output_consumption": true
     },
     "data_output_file": "./data/c_blocks.npy",
     "model_output_file": "./models/c_model.h5"

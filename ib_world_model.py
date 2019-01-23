@@ -9,9 +9,10 @@ import os
 
 
 class S_RNNCell(Layer):
-    def __init__(self, units, state_size, z_dim, a_dim, **kwargs):
+    def __init__(self, units, state_size, self_input, z_dim, a_dim, **kwargs):
         self.units = units
-        self.state_size = state_size
+        self.state_size = (units, state_size)
+        self.self_input = self_input
         self.output_size = units
         self.z_dim = z_dim
         self.a_dim = a_dim
@@ -22,6 +23,7 @@ class S_RNNCell(Layer):
         base_config.update({
             'units': self.units,
             'state_size': self.state_size,
+            'self_input': self.self_input,
             'z_dim': self.z_dim,
             'a_dim': self.a_dim
         })
@@ -30,21 +32,24 @@ class S_RNNCell(Layer):
     def build(self, input_shape):
         assert len(input_shape) == 2  # Only batch size and a vector dimension
         assert input_shape[1] == (self.z_dim + self.a_dim)
-        self.A_weights = self.add_weight(name='A', shape=(self.state_size, self.state_size), initializer='uniform')
-        self.B_weights = self.add_weight(name='B', shape=(self.state_size, self.state_size), initializer='uniform')
-        self.C_weights = self.add_weight(name='C', shape=(self.z_dim, self.state_size), initializer='uniform')
-        self.D_weights = self.add_weight(name='D', shape=(self.a_dim, self.state_size), initializer='uniform')
-        self.E_weights = self.add_weight(name='E', shape=(self.state_size, self.units), initializer='uniform')
+        self.A_weights = self.add_weight(name='A', shape=(self.state_size[1], self.state_size[1]), initializer='uniform')
+        self.B_weights = self.add_weight(name='B', shape=(self.state_size[1], self.state_size[1]), initializer='uniform')
+        self.C_weights = self.add_weight(name='C', shape=(self.z_dim + (1 if self.self_input else 0), self.state_size[1]), initializer='uniform')
+        self.D_weights = self.add_weight(name='D', shape=(self.a_dim, self.state_size[1]), initializer='uniform')
+        self.E_weights = self.add_weight(name='E', shape=(self.state_size[1], self.units), initializer='uniform')
         super().build(input_shape)
 
     def call(self, inputs, states):
-        si_prev = states[0]
+        y_prev = states[0]
+        si_prev = states[1]
         z = inputs[:,:self.z_dim]
+        if self.self_input:
+            z = K.concatenate((z, y_prev), axis=1)
         a = inputs[:,self.z_dim:]
         s = K.tanh(K.dot(si_prev, self.A_weights) + K.dot(z, self.C_weights))
         si = K.tanh(K.dot(s, self.B_weights) + K.dot(a, self.D_weights))
         y = K.dot(si, self.E_weights)
-        return y, [si]
+        return y, [y, si]
 
 
 def generate_world_model(cfg, clean = False):
@@ -65,6 +70,7 @@ def generate_world_model(cfg, clean = False):
     training_output = training_output[shuffled_indices]
 
     STATE_DIM = learning_cfg['state_dim']
+    SELF_INPUT = learning_cfg['self_input']
 
     Z_DIM = np.shape(training_data.dtype[0])[1]  # includes self-input
     assert 0 < Z_DIM
@@ -80,7 +86,7 @@ def generate_world_model(cfg, clean = False):
     for i in range(len(training_data.dtype)):
         assert np.shape(training_data.dtype[i])[0] == UNROLL_PAST + UNROLL_FUTURE
 
-    cell = S_RNNCell(Y_DIM, STATE_DIM, Z_DIM, A_DIM)
+    cell = S_RNNCell(Y_DIM, STATE_DIM, SELF_INPUT, Z_DIM, A_DIM)
     model = Sequential()
     model.add(RNN(cell, return_sequences=True))
 

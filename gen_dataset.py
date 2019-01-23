@@ -84,9 +84,6 @@ def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
     assert OUTPUT_FUEL or OUTPUT_CONSUMPTION, 'at least one output must be given'
     assert not OUTPUT_FUEL or not OUTPUT_CONSUMPTION, 'only one output is supported'
 
-    SELF_INPUT_FUEL = data_cfg['self_input_fuel']
-    SELF_INPUT_CONSUMPTION = data_cfg['self_input_consumption']
-
     block_sizes = [ [ [] for _ in range(TRAJECTORIES) ] for _ in range(N_HYPERVARS) ]
     global_windows_num = 0
     for hypervar_trajectories in block_sizes:
@@ -99,10 +96,9 @@ def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
                 datapoints_num -= block_size
                 block_size = random_blocksize()
 
-    has_self_input = (OUTPUT_FUEL and SELF_INPUT_FUEL) or (OUTPUT_CONSUMPTION and SELF_INPUT_CONSUMPTION)
     data_blocks = np.empty(
         (global_windows_num,), dtype=[
-            ('z', 'f4', (WINDOW_LENGTH, Z_DIM + (1 if has_self_input else 0))),
+            ('z', 'f4', (WINDOW_LENGTH, Z_DIM)),
             ('a', 'f4', (WINDOW_LENGTH, A_DIM)),
             ('y', 'f4', (WINDOW_LENGTH, 1))
         ]
@@ -133,20 +129,6 @@ def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
                 a_windows = np.append(p_a_windows, f_a_windows, axis=1)
 
                 output_windows = outputs[windows]
-                if OUTPUT_FUEL and SELF_INPUT_FUEL:
-                    z_windows = np.insert(
-                        z_windows,
-                        env.z_dim,
-                        output_windows.reshape(windows_num, WINDOW_LENGTH),
-                        axis=2
-                    )
-                elif OUTPUT_CONSUMPTION and SELF_INPUT_CONSUMPTION:
-                    z_windows = np.insert(
-                        z_windows,
-                        env.z_dim,
-                        output_windows.reshape(windows_num, WINDOW_LENGTH),
-                        axis=2
-                    )
 
                 for k in range(windows_num):
                     data_blocks[block_i] = (z_windows[k], a_windows[k], output_windows[k])
