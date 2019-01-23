@@ -6,6 +6,7 @@ import numpy as np
 from itertools import islice
 import argparse
 from misc.dicts import load_cfg
+from misc.files import ensure_can_write
 
 class BenchmarkTrajectory:
     z_dim = 4
@@ -148,11 +149,7 @@ def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
 
     assert block_i == global_windows_num
 
-    dirs, _ = os.path.split(write_to)
-    try:
-        os.makedirs(dirs)
-    except FileExistsError:
-        pass
+    ensure_can_write(write_to)
     np.save(write_to, data_blocks)
 
     return data_blocks

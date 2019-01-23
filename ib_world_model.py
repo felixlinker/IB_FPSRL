@@ -4,6 +4,7 @@ from keras.layers import RNN, Layer
 import numpy as np
 from argparse import ArgumentParser
 from misc.dicts import load_cfg
+from misc.files import ensure_can_write
 import os
 
 
@@ -72,11 +73,7 @@ def generate_world_model(cfg, clean = False):
         model.fit(training_input, training_output, verbose=1)
 
     print('Serializing trained model')
-    dirs, _ = os.path.split(write_to)
-    try:
-        os.makedirs(dirs)
-    except FileExistsError:
-        pass
+    ensure_can_write(write_to)
     model.save(write_to)
 
     return model
