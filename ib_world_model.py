@@ -37,6 +37,7 @@ class S_RNNCell(Layer):
         self.C_weights = self.add_weight(name='C', shape=(self.z_dim + (1 if self.self_input else 0), self.state_size[1]), initializer='uniform')
         self.D_weights = self.add_weight(name='D', shape=(self.a_dim, self.state_size[1]), initializer='uniform')
         self.E_weights = self.add_weight(name='E', shape=(self.state_size[1], self.units), initializer='uniform')
+        self.bias = self.add_weight(name='bias', shape=(self.state_size[1],), initializer='uniform')
         super().build(input_shape)
 
     def call(self, inputs, states):
@@ -47,7 +48,7 @@ class S_RNNCell(Layer):
             z = K.concatenate((z, y_prev), axis=1)
         a = inputs[:,self.z_dim:]
         s = K.tanh(K.dot(si_prev, self.A_weights) + K.dot(z, self.C_weights))
-        si = K.tanh(K.dot(s, self.B_weights) + K.dot(a, self.D_weights))
+        si = K.tanh(K.dot(s, self.B_weights) + K.dot(a, self.D_weights) + self.bias)
         y = K.dot(si, self.E_weights)
         return y, [y, si]
 
