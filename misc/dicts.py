@@ -24,7 +24,7 @@ DEFAULT_CFG = {
     'learning': {
         'state_dim': 20,
         'epochs': 3,
-        'batch_size': 3,
+        'batch_size': 10,
         'learning_rate': 0.05,
         'learning_rate_steps': 10,
         'validation_split': 0.3

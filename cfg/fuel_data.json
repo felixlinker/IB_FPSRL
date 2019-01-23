@@ -8,7 +8,7 @@
     },
     "data": {
         "output_fuel": true,
-        "self_input_fuel": false
+        "self_input_fuel": true
     },
     "data_output_file": "./data/f_blocks.npy",
     "learning": {
