@@ -22,7 +22,7 @@ class S_RNNCell(Layer):
         base_config = super().get_config()
         base_config.update({
             'units': self.units,
-            'state_size': self.state_size,
+            'state_size': self.state_size[1],
             'self_input': self.self_input,
             'z_dim': self.z_dim,
             'a_dim': self.a_dim
