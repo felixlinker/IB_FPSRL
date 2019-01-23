@@ -23,5 +23,8 @@ def load_cfg(path: str) -> dict:
 
 def setdefaults(dest: dict, source: dict) -> dict:
     for k, v in source.items():
-        dest.setdefault(k, v)
+        if type(v) == dict:
+            setdefaults(dest.setdefault(k, dict()), v)
+        else:
+            dest.setdefault(k, v)
     return dest
