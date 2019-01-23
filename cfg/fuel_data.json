@@ -11,5 +11,9 @@
         "self_input_fuel": false
     },
     "data_output_file": "./data/f_blocks.npy",
+    "learning": {
+        "batch_size": 5,
+        "epochs": 2
+    },
     "model_output_file": "./models/f_model.h5"
 }
