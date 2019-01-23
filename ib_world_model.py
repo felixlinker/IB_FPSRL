@@ -39,6 +39,8 @@ class S_RNNCell(Layer):
 
 def generate_world_model(cfg, clean = False):
     write_to = cfg['model_output_file']
+    gen_cfg = cfg['generation']
+    learning_cfg = cfg['learning']
     if os.path.isfile(write_to) and not clean:
         return load_model(write_to)
 
@@ -46,7 +48,7 @@ def generate_world_model(cfg, clean = False):
     training_input = np.concatenate((training_data['z'], training_data['a']), axis=2)
     training_output = training_data['y']
 
-    STATE_DIM = cfg['state_dim']
+    STATE_DIM = learning_cfg['state_dim']
 
     Z_DIM = np.shape(training_data.dtype[0])[1]  # includes self-input
     assert 0 < Z_DIM
@@ -55,9 +57,9 @@ def generate_world_model(cfg, clean = False):
     Y_DIM = np.shape(training_data.dtype[2])[1]
     assert 0 < Y_DIM
 
-    UNROLL_PAST = cfg['past_window']
+    UNROLL_PAST = gen_cfg['past_window']
     assert 0 < UNROLL_PAST
-    UNROLL_FUTURE = cfg['future_window']
+    UNROLL_FUTURE = gen_cfg['future_window']
     assert 0 <= UNROLL_FUTURE
     for i in range(len(training_data.dtype)):
         assert np.shape(training_data.dtype[i])[0] == UNROLL_PAST + UNROLL_FUTURE
@@ -67,10 +69,16 @@ def generate_world_model(cfg, clean = False):
     model.add(RNN(cell, return_sequences=True))
 
     print('Starting training')
-    for lr in map(lambda exp: 0.05 * (0.5 ** exp), range(10)):
+    base_lr = learning_cfg['learning_rate']
+    steps = learning_cfg['learning_rate_steps']
+    for lr in map(lambda exp: base_lr * (0.5 ** exp), range(steps)):
         opt = optimizers.RMSprop(lr=lr)
         model.compile(optimizer=opt, loss='mean_squared_error')
-        model.fit(training_input, training_output, verbose=1)
+        model.fit(training_input, training_output,
+            verbose=1,
+            batch_size=learning_cfg['batch_size'],
+            epochs=learning_cfg['epochs']
+        )
 
     print('Serializing trained model')
     ensure_can_write(write_to)
