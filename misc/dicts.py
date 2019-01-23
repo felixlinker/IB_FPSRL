@@ -26,7 +26,8 @@ DEFAULT_CFG = {
         'epochs': 3,
         'batch_size': 3,
         'learning_rate': 0.05,
-        'learning_rate_steps': 10
+        'learning_rate_steps': 10,
+        'validation_split': 0.3
     },
     'model_output_file': ''
 }

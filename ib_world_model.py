@@ -58,6 +58,12 @@ def generate_world_model(cfg, clean = False):
     training_input = np.concatenate((training_data['z'], training_data['a']), axis=2)
     training_output = training_data['y']
 
+    # Shuffle training data
+    shuffled_indices = np.arange(len(training_data))
+    np.random.shuffle(shuffled_indices)
+    training_input = training_input[shuffled_indices]
+    training_output = training_output[shuffled_indices]
+
     STATE_DIM = learning_cfg['state_dim']
 
     Z_DIM = np.shape(training_data.dtype[0])[1]  # includes self-input
@@ -83,8 +89,9 @@ def generate_world_model(cfg, clean = False):
     steps = learning_cfg['learning_rate_steps']
     for lr in map(lambda exp: base_lr * (0.5 ** exp), range(steps)):
         opt = optimizers.RMSprop(lr=lr)
-        model.compile(optimizer=opt, loss='mean_squared_error')
+        model.compile(optimizer=opt, loss='mean_squared_error', metrics=['mean_absolute_percentage_error'])
         model.fit(training_input, training_output,
+            validation_split=learning_cfg['validation_split'],
             verbose=1,
             batch_size=learning_cfg['batch_size'],
             epochs=learning_cfg['epochs']
