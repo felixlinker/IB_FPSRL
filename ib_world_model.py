@@ -17,6 +17,16 @@ class S_RNNCell(Layer):
         self.a_dim = a_dim
         super().__init__(**kwargs)
 
+    def get_config(self):
+        base_config = super().get_config()
+        base_config.update({
+            'units': self.units,
+            'state_size': self.state_size,
+            'z_dim': self.z_dim,
+            'a_dim': self.a_dim
+        })
+        return base_config
+
     def build(self, input_shape):
         assert len(input_shape) == 2  # Only batch size and a vector dimension
         assert input_shape[1] == (self.z_dim + self.a_dim)
@@ -42,7 +52,7 @@ def generate_world_model(cfg, clean = False):
     gen_cfg = cfg['generation']
     learning_cfg = cfg['learning']
     if os.path.isfile(write_to) and not clean:
-        return load_model(write_to)
+        return load_model(write_to, custom_objects={ 'S_RNNCell': S_RNNCell })
 
     training_data = np.load(cfg['data_output_file'])
     training_input = np.concatenate((training_data['z'], training_data['a']), axis=2)
