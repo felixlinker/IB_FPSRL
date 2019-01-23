@@ -15,6 +15,7 @@ class BenchmarkTrajectory:
         self.y_dim = y_dim
         self.benchmark = IDS.IDS(p=hypervars, inital_seed=seed)
         self.can_supply = length
+        np.random.seed(seed)
 
     def empty(self) -> bool:
         return self.can_supply <= 0
@@ -45,6 +46,9 @@ def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
     data_cfg = cfg['data']
     if os.path.isfile(write_to) and not clean:
         return np.load(write_to)
+
+    SEED = gen_cfg['seed']
+    np.random.seed(SEED)
 
     PAST_LENGTH = gen_cfg['past_window']
     assert 0 < PAST_LENGTH
@@ -82,8 +86,6 @@ def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
 
     SELF_INPUT_FUEL = data_cfg['self_input_fuel']
     SELF_INPUT_CONSUMPTION = data_cfg['self_input_consumption']
-
-    SEED = gen_cfg['seed']
 
     block_sizes = [ [ [] for _ in range(TRAJECTORIES) ] for _ in range(N_HYPERVARS) ]
     global_windows_num = 0
