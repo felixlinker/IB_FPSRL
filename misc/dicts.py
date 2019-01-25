@@ -23,7 +23,7 @@ DEFAULT_CFG = {
         'state_dim': 20,
         'self_input': True,
         'epochs': 3,
-        'batch_size': 10,
+        'batch_size': 64,
         'learning_rate': 0.05,
         'learning_rate_steps': 10,
         'validation_split': 0.3
