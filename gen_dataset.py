@@ -5,8 +5,9 @@ import IDS
 import numpy as np
 from itertools import islice
 import argparse
-from misc.dicts import load_cfg
+from misc.dicts import load_data_cfg
 from misc.files import ensure_can_write
+from misc.args import parse_cfg_args
 from functools import reduce
 
 A_DIM = 3  # IB constant
@@ -151,9 +152,4 @@ def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
     return data_blocks
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Create a .npz file containing training data blocks')
-    parser.add_argument('cfg_file')
-    parser.add_argument('-c', '--clean', action='store_true')
-    args = parser.parse_args()
-    cfg = load_cfg(args.cfg_file)
-    generate_dataset(cfg, args.clean)
+    generate_dataset(*parse_cfg_args(load_data_cfg))

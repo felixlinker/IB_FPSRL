@@ -1,6 +1,6 @@
 import json
 
-DEFAULT_CFG = {
+DEFAULT_DATA_CFG = {
     'generation': {
         'seed': 0,
         'init_setpoints': range(10, 101, 10),
@@ -29,10 +29,28 @@ DEFAULT_CFG = {
     'model_output_file': ''
 }
 
-def load_cfg(path: str) -> dict:
+DEFAULT_POLICY_CFG = {
+    'fuel_cfg': '',
+    'consumption_cfg': '',
+    'rules_num': 20,
+    'future_rewards_window': 7,
+    'future_rewards_weight': 0.5
+}
+
+
+def load_cfg(path: str, default_cfg: dict) -> dict:
     with open(path) as fp:
         cfg = json.load(fp)
-    return setdefaults(cfg, DEFAULT_CFG)
+    return setdefaults(cfg, default_cfg)
+
+
+def load_data_cfg(path: str) -> dict:
+    return load_cfg(path, DEFAULT_DATA_CFG)
+
+
+def load_policy_cfg(path: str) -> dict:
+    return load_cfg(path, DEFAULT_POLICY_CFG)
+
 
 def setdefaults(dest: dict, source: dict) -> dict:
     for k, v in source.items():

@@ -3,8 +3,9 @@ from keras.models import Sequential, load_model
 from keras.layers import RNN, Layer
 import numpy as np
 from argparse import ArgumentParser
-from misc.dicts import load_cfg
+from misc.dicts import load_data_cfg
 from misc.files import ensure_can_write
+from misc.args import parse_cfg_args
 import os
 
 
@@ -112,9 +113,4 @@ def generate_world_model(cfg, clean = False):
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser(description='Create and train a neural net for a world model')
-    parser.add_argument('cfg_file')
-    parser.add_argument('-c', '--clean', action='store_true')
-    args = parser.parse_args()
-    cfg = load_cfg(args.cfg_file)
-    generate_world_model(cfg, args.clean)
+    generate_world_model(*parse_cfg_args(load_data_cfg))
