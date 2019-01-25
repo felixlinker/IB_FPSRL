@@ -12,10 +12,28 @@ from functools import reduce
 A_DIM = 3  # IB constant
 
 
+class BenchmarkGenerator:
+    def __init__(self, z_dim: int, hypervars: int, seed: int):
+        self.z_dim = z_dim
+        self.benchmark = IDS.IDS(p=hypervars, inital_seed=seed)
+
+    def get_state(self):
+        return self.benchmark.visibleState()[:self.z_dim]  # p, v, g, h
+
+    def get_rewards(self):
+        state = self.benchmark.visibleState()
+        return np.array(state[4:6])  # f, c
+
+    def __call__(self, action_vector):
+        assert np.shape(action_vector) == (A_DIM,)
+        self.benchmark.step(action_vector)
+        return (self.get_state(), self.get_rewards())
+
+
 class BenchmarkTrajectory:
     def __init__(self, z_dim: int, length: int, hypervars: int, seed: int):
         self.z_dim = z_dim
-        self.benchmark = IDS.IDS(p=hypervars, inital_seed=seed)
+        self.benchmark = BenchmarkGenerator(z_dim, hypervars, seed)
         self.can_supply = length
         np.random.seed(seed)
 
@@ -29,18 +47,10 @@ class BenchmarkTrajectory:
         if self.empty():
             raise StopIteration
         actions = 2 * np.random.rand(A_DIM) -1  # elements in [-1, 1]
-        s = self.get_setpoint()
-        self.benchmark.step(actions)
+        s = self.benchmark.get_state()
+        _, rewards = self.benchmark(actions)
         self.can_supply -= 1
-        return (s, actions, self.get_rewards())
-        return np.concatenate((s, actions, self.get_rewards()))
-
-    def get_setpoint(self) -> float:
-        return self.benchmark.visibleState()[:self.z_dim]  # p, v, g, h
-
-    def get_rewards(self) -> np.ndarray:
-        state = self.benchmark.visibleState()
-        return np.array(state[4:6])  # f, c
+        return (s, actions, rewards)
 
 
 def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
