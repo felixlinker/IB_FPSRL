@@ -96,7 +96,7 @@ def generate_world_model(cfg, clean = False):
     steps = learning_cfg['learning_rate_steps']
     for lr in map(lambda exp: base_lr * (0.5 ** exp), range(steps)):
         opt = optimizers.RMSprop(lr=lr)
-        model.compile(optimizer=opt, loss='mean_squared_error', metrics=['mean_absolute_percentage_error'])
+        model.compile(optimizer=opt, loss='mean_squared_error', metrics=['mean_absolute_error'])
         model.fit(training_input, training_output,
             validation_split=learning_cfg['validation_split'],
             verbose=1,
