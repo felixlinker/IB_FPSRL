@@ -13,8 +13,6 @@ DEFAULT_CFG = {
     },
     'data': {
         'z_dim': 4,
-        'a_dim': 3,
-        'y_dim': 1,
         'output_fuel': False,
         'output_consumption': False,
     },

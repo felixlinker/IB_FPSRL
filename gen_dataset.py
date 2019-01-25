@@ -7,12 +7,14 @@ from itertools import islice
 import argparse
 from misc.dicts import load_cfg
 from misc.files import ensure_can_write
+from functools import reduce
+
+A_DIM = 3  # IB constant
+
 
 class BenchmarkTrajectory:
-    def __init__(self, z_dim: int, a_dim: int, y_dim: int, length: int, hypervars: int, seed: int):
+    def __init__(self, z_dim: int, length: int, hypervars: int, seed: int):
         self.z_dim = z_dim
-        self.a_dim = a_dim
-        self.y_dim = y_dim
         self.benchmark = IDS.IDS(p=hypervars, inital_seed=seed)
         self.can_supply = length
         np.random.seed(seed)
@@ -26,10 +28,11 @@ class BenchmarkTrajectory:
     def __next__(self) -> np.ndarray:
         if self.empty():
             raise StopIteration
-        actions = 2 * np.random.rand(self.a_dim) -1  # elements in [-1, 1]
+        actions = 2 * np.random.rand(A_DIM) -1  # elements in [-1, 1]
         s = self.get_setpoint()
         self.benchmark.step(actions)
         self.can_supply -= 1
+        return (s, actions, self.get_rewards())
         return np.concatenate((s, actions, self.get_rewards()))
 
     def get_setpoint(self) -> float:
@@ -37,7 +40,7 @@ class BenchmarkTrajectory:
 
     def get_rewards(self) -> np.ndarray:
         state = self.benchmark.visibleState()
-        return np.array(state[4:4 + self.y_dim])  # f, c
+        return np.array(state[4:6])  # f, c
 
 
 def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
@@ -74,10 +77,6 @@ def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
 
     Z_DIM = data_cfg['z_dim']
     assert 0 < Z_DIM
-    A_DIM = data_cfg['a_dim']
-    assert 0 < A_DIM
-    Y_DIM = data_cfg['y_dim']
-    assert 0 < Y_DIM
 
     OUTPUT_FUEL = data_cfg['output_fuel']
     OUTPUT_CONSUMPTION = data_cfg['output_consumption']
@@ -107,26 +106,26 @@ def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
     block_i = 0
     for i, h_num in enumerate(HYPERVARS):
         for j in range(TRAJECTORIES):
-            env = BenchmarkTrajectory(Z_DIM, A_DIM, Y_DIM, TRAJECTORY_LENGTH, h_num, SEED)
+            env = BenchmarkTrajectory(Z_DIM, TRAJECTORY_LENGTH, h_num, SEED)
 
             for blocksize in block_sizes[i][j]:
-                data_block = np.array(list(islice(env, blocksize)))  # get block-many data points
-                inputs, outputs = np.hsplit(data_block, [env.z_dim + env.a_dim])  # split at index for f
+                data_block = islice(env, blocksize)  # get block-many data points
+                z_inputs, a_inputs, outputs = map(np.array, reduce(
+                    lambda aggregator, t: (aggregator[0] + [t[0]], aggregator[1] + [t[1]], aggregator[2] + [t[2]]),
+                    data_block,
+                    ([], [], [])
+                ))
+                outputs = outputs[:,(0 if OUTPUT_FUEL else 1)].reshape(len(outputs), 1)  # else: OUTPUT_CONSUMPTION
 
-                if len(data_block) < WINDOW_LENGTH:
+                if len(z_inputs) < WINDOW_LENGTH:
                     break
-                windows_num = min(len(data_block), blocksize) - WINDOW_LENGTH +1
+                windows_num = min(len(z_inputs), blocksize) - WINDOW_LENGTH +1
 
                 # Create index matrix for windows
                 windows = np.arange(WINDOW_LENGTH) + np.arange(windows_num).reshape(windows_num, 1)
                 p_windows, f_windows = np.hsplit(windows, [PAST_LENGTH])
-                p_windows = inputs[p_windows]
-                p_z_windows, p_a_windows = np.split(p_windows, [env.z_dim], axis=2)
-                f_windows = inputs[f_windows]
-                f_z_windows = np.zeros((windows_num, FUTURE_LENGTH, env.z_dim))
-                _, f_a_windows = np.split(f_windows, [env.z_dim], axis=2)
-                z_windows = np.append(p_z_windows, f_z_windows, axis=1)
-                a_windows = np.append(p_a_windows, f_a_windows, axis=1)
+                z_windows = np.append(z_inputs[p_windows], np.zeros(z_inputs.shape)[f_windows], axis=1)
+                a_windows = a_inputs[windows]
 
                 output_windows = outputs[windows]
 
