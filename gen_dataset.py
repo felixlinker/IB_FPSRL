@@ -54,11 +54,11 @@ class BenchmarkTrajectory:
         return (s, actions, rewards)
 
 
-def generate_dataset(cfg: dict, clean: bool = False) -> np.ndarray:
+def generate_dataset(cfg: dict, clean: bool = False, strict_clean: bool = False) -> np.ndarray:
     write_to = cfg['data_output_file']
     gen_cfg = cfg['generation']
     data_cfg = cfg['data']
-    if os.path.isfile(write_to) and not clean:
+    if os.path.isfile(write_to) and not (clean or strict_clean):
         return np.load(write_to)
 
     SEED = gen_cfg['seed']

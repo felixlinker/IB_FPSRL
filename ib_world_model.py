@@ -7,6 +7,7 @@ from misc.dicts import load_data_cfg
 from misc.files import ensure_can_write
 from misc.args import parse_cfg_args
 import os
+from gen_dataset import generate_dataset
 
 
 class S_RNNCell(Layer):
@@ -54,14 +55,14 @@ class S_RNNCell(Layer):
         return y, [y, si]
 
 
-def generate_world_model(cfg, clean = False):
+def generate_world_model(cfg, clean = False, strict_clean = False):
     write_to = cfg['model_output_file']
     gen_cfg = cfg['generation']
     learning_cfg = cfg['learning']
-    if os.path.isfile(write_to) and not clean:
+    if os.path.isfile(write_to) and not (clean or strict_clean):
         return load_model(write_to, custom_objects={ 'S_RNNCell': S_RNNCell })
 
-    training_data = np.load(cfg['data_output_file'])
+    training_data = generate_dataset(cfg, strict_clean, strict_clean)
     training_input = np.concatenate((training_data['z'], training_data['a']), axis=2)
     training_output = training_data['y']
 
