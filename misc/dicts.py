@@ -2,12 +2,12 @@ import json
 
 DEFAULT_DATA_CFG = {
     'generation': {
-        'seed': 0,
+        'seed': 3156498897,
         'init_setpoints': range(10, 101, 10),
-        'past_window': 10,
+        'past_window': 30,
         'future_window': 50,
-        'min_block_size': 90,
-        'max_block_size': 120,
+        'min_block_size': 120,
+        'max_block_size': 160,
         'trajectories_num': 10,
         'trajectories_length': 1000
     },

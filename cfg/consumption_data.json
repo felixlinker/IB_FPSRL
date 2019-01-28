@@ -1,11 +1,4 @@
 {
-    "generation": {
-        "seed": 3156498897,
-        "past_window": 30,
-        "future_window": 50,
-        "min_block_size": 120,
-        "max_block_size": 160
-    },
     "data": {
         "output_consumption": true
     },
