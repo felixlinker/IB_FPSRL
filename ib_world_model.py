@@ -65,7 +65,7 @@ def load_training_data(cfg, strict_clean, validation_split):
     training_input = training_input[shuffled_indices]
     training_output = training_output[shuffled_indices]
 
-    validation_split_i = int(len(training_input) * validation_split)
+    validation_split_i = int(len(training_input) * (1 - validation_split))
     training_input, validation_input = np.split(training_input, [ validation_split_i ])
     training_output, validation_output = np.split(training_output, [ validation_split_i ])
     return training_data, training_input, validation_input, training_output, validation_output
