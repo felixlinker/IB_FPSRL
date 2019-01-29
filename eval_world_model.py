@@ -65,4 +65,4 @@ def evaluate_world_model(cfg, model = None, eval_input = None, eval_output = Non
 
 
 if __name__ == "__main__":
-    evaluate_world_model(parse_cfg_args(load_data_cfg)[0])
+    evaluate_world_model(*parse_cfg_args(load_data_cfg, False))

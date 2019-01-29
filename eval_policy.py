@@ -86,4 +86,4 @@ def evaluate_policy(cfg, policy = None):
 
 
 if __name__ == "__main__":
-    evaluate_policy(parse_cfg_args(load_policy_cfg)[0])
+    evaluate_policy(*parse_cfg_args(load_policy_cfg, False))
