@@ -33,12 +33,13 @@ class BenchmarkGenerator:
 
 
 class BenchmarkTrajectory:
-    def __init__(self, z_dim: int, y_index: int, length: int, hypervars: int, seed: int):
+    def __init__(self, z_dim: int, y_index: int, length: int, hypervars: int, seed: int = None):
         self.z_dim = z_dim
         self.y_index = y_index
         self.benchmark = BenchmarkGenerator(z_dim, hypervars, seed)
         self.can_supply = length
-        np.random.seed(seed)
+        if seed is not None:
+            np.random.seed(seed)
 
     def empty(self) -> bool:
         return self.can_supply <= 0
