@@ -2,6 +2,10 @@
     "data": {
         "output_fuel": true
     },
+    "learning": {
+        "validation_output_file": "./evaluation/f_model_metrics.json",
+        "validation_example_file": "./evaluation/f_model_graph.png"
+    },
     "data_output_file": "./data/f_blocks.npy",
     "model_output_file": "./models/f_model.h5"
 }

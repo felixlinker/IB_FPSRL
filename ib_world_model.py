@@ -8,6 +8,7 @@ from misc.files import ensure_can_write
 from misc.args import parse_cfg_args
 import os
 from gen_dataset import generate_dataset
+import eval_world_model as evaluation
 
 
 class S_RNNCell(Layer):
@@ -55,6 +56,21 @@ class S_RNNCell(Layer):
         return y, [y, si]
 
 
+def load_training_data(cfg, strict_clean, validation_split):
+    training_data = generate_dataset(cfg, strict_clean, strict_clean)
+    training_input = np.concatenate((training_data['z'], training_data['a']), axis=2)
+    training_output = training_data['y']
+    shuffled_indices = np.arange(len(training_data))
+    np.random.shuffle(shuffled_indices)
+    training_input = training_input[shuffled_indices]
+    training_output = training_output[shuffled_indices]
+
+    validation_split_i = int(len(training_input) * validation_split)
+    training_input, validation_input = np.split(training_input, [ validation_split_i ])
+    training_output, validation_output = np.split(training_output, [ validation_split_i ])
+    return training_data, training_input, validation_input, training_output, validation_output
+
+
 def generate_world_model(cfg, clean = False, strict_clean = False):
     write_to = cfg['model_output_file']
     gen_cfg = cfg['generation']
@@ -62,15 +78,15 @@ def generate_world_model(cfg, clean = False, strict_clean = False):
     if os.path.isfile(write_to) and not (clean or strict_clean):
         return load_model(write_to, custom_objects={ 'S_RNNCell': S_RNNCell })
 
-    training_data = generate_dataset(cfg, strict_clean, strict_clean)
-    training_input = np.concatenate((training_data['z'], training_data['a']), axis=2)
-    training_output = training_data['y']
+    SEED = gen_cfg['seed']
+    np.random.seed(SEED)
 
-    # Shuffle training data
-    shuffled_indices = np.arange(len(training_data))
-    np.random.shuffle(shuffled_indices)
-    training_input = training_input[shuffled_indices]
-    training_output = training_output[shuffled_indices]
+    VALIDATION_SPLIT = learning_cfg['validation_split']
+    assert 0 < VALIDATION_SPLIT and VALIDATION_SPLIT < 1
+
+    training_data, \
+    training_input, validation_input, \
+    training_output, validation_output = load_training_data(cfg, strict_clean, VALIDATION_SPLIT)
 
     STATE_DIM = learning_cfg['state_dim']
     SELF_INPUT = learning_cfg['self_input']
@@ -100,11 +116,12 @@ def generate_world_model(cfg, clean = False, strict_clean = False):
         opt = optimizers.RMSprop(lr=lr)
         model.compile(optimizer=opt, loss='mean_squared_error', metrics=['mean_absolute_error'])
         model.fit(training_input, training_output,
-            validation_split=learning_cfg['validation_split'],
             verbose=1,
             batch_size=learning_cfg['batch_size'],
             epochs=learning_cfg['epochs']
         )
+
+    evaluation.evaluate_world_model(cfg, model=model, eval_input=validation_input, eval_output=validation_output)
 
     print('Serializing trained model')
     ensure_can_write(write_to)

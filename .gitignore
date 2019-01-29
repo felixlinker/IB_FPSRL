@@ -1,5 +1,6 @@
 /data
 /models
 /policies
+/evaluation
 /.vscode
 **/__pycache__

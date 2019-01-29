@@ -24,7 +24,9 @@ DEFAULT_DATA_CFG = {
         'batch_size': 64,
         'learning_rate': 0.05,
         'learning_rate_steps': 10,
-        'validation_split': 0.3
+        'validation_split': 0.3,
+        'validation_output_file': '',
+        'validation_example_file': '',
     },
     'model_output_file': ''
 }
