@@ -9,6 +9,7 @@ from misc.dicts import load_data_cfg
 from misc.files import ensure_can_write
 from misc.args import parse_cfg_args
 from functools import reduce
+from scipy.stats import zscore
 
 A_DIM = 3  # IB constant
 
@@ -118,15 +119,24 @@ def generate_dataset(cfg: dict, clean: bool = False, strict_clean: bool = False)
     for i, h_num in enumerate(HYPERVARS):
         for j in range(TRAJECTORIES):
             env = BenchmarkTrajectory(Z_DIM, TRAJECTORY_LENGTH, h_num, SEED)
+            z_blocks, a_blocks, output_blocks = map(np.array, reduce(
+                lambda aggregator, t: (aggregator[0] + [t[0]], aggregator[1] + [t[1]], aggregator[2] + [t[2]]),
+                list(env),
+                ([], [], [])
+            ))
+            output_blocks = output_blocks[:,(0 if OUTPUT_FUEL else 1)].reshape(-1, 1)  # else: OUTPUT_CONSUMPTION
+            # don't perform z-transformation on setpoint axis because that is constant
+            z_blocks = np.concatenate((z_blocks[:,:1], zscore(z_blocks[:,1:])), axis=1)
+            a_blocks = zscore(a_blocks)
+            output_blocks = zscore(output_blocks)
 
+            slice_i = 0
             for blocksize in block_sizes[i][j]:
-                data_block = islice(env, blocksize)  # get block-many data points
-                z_inputs, a_inputs, outputs = map(np.array, reduce(
-                    lambda aggregator, t: (aggregator[0] + [t[0]], aggregator[1] + [t[1]], aggregator[2] + [t[2]]),
-                    data_block,
-                    ([], [], [])
-                ))
-                outputs = outputs[:,(0 if OUTPUT_FUEL else 1)].reshape(len(outputs), 1)  # else: OUTPUT_CONSUMPTION
+                # get block-many data points
+                z_inputs = z_blocks[slice_i:slice_i + blocksize]
+                a_inputs = a_blocks[slice_i:slice_i + blocksize]
+                outputs = output_blocks[slice_i:slice_i + blocksize]
+                slice_i += blocksize
 
                 if len(z_inputs) < WINDOW_LENGTH:
                     break
