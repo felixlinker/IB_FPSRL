@@ -55,6 +55,13 @@ class BenchmarkTrajectory:
         self.can_supply -= 1
         return (s, actions, rewards[self.y_index])
 
+    def to_array(self) -> np.ndarray:
+        return np.array(list(self), dtype=[
+            ('z', 'f4', self.z_dim),
+            ('a', 'f4', A_DIM),
+            ('y', 'f4', 1)
+        ])
+
 
 def generate_dataset(cfg: dict, clean: bool = False, strict_clean: bool = False) -> np.ndarray:
     write_to = cfg['data_output_file']
@@ -120,11 +127,7 @@ def generate_dataset(cfg: dict, clean: bool = False, strict_clean: bool = False)
     for i, h_num in enumerate(HYPERVARS):
         for j in range(TRAJECTORIES):
             env = BenchmarkTrajectory(Z_DIM, (0 if OUTPUT_FUEL else 1), TRAJECTORY_LENGTH, h_num, SEED)
-            blocks = np.array(list(env), dtype=[
-                ('z', 'f4', Z_DIM),
-                ('a', 'f4', A_DIM),
-                ('y', 'f4', 1)
-            ])
+            blocks = env.to_array()
             # don't perform z-transformation on setpoint axis because that is constant
             blocks['z'] = np.concatenate(
                 (blocks['z'][:,:1], zscore(blocks['z'][:,1:])),
