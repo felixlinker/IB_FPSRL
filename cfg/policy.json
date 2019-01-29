@@ -1,0 +1,5 @@
+{
+    "fuel_cfg": "./cfg/fuel_data.json",
+    "consumption_cfg": "./cfg/consumption_data.json",
+    "policy_output_file": "./policies/policy.npy"
+}

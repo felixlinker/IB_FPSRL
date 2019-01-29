@@ -32,9 +32,24 @@ DEFAULT_DATA_CFG = {
 DEFAULT_POLICY_CFG = {
     'fuel_cfg': '',
     'consumption_cfg': '',
-    'rules_num': 20,
-    'future_rewards_window': 7,
-    'future_rewards_weight': 0.5
+    'policy': {
+        'rules_num': 3,
+        'future_rewards_window': 7,
+        'future_rewards_weight': 2,
+        'eval_setpoints': range(10, 101, 10),
+    },
+    'particle_swarm': {
+        'particles': 25,
+        'iterations': 250,
+        'hyperparameters': {
+            'c1': 0.5,  # cognitive parameter
+            'c2': 0.3,  # social parameter
+            'w': 0.9,   # inertia parameter
+            'k': 5,     # numbers of neighbors
+            'p': 2,     # Minkowski p-norm
+        },
+    },
+    'policy_output_file': ''
 }
 
 
