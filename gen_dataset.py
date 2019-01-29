@@ -33,8 +33,9 @@ class BenchmarkGenerator:
 
 
 class BenchmarkTrajectory:
-    def __init__(self, z_dim: int, length: int, hypervars: int, seed: int):
+    def __init__(self, z_dim: int, y_index: int, length: int, hypervars: int, seed: int):
         self.z_dim = z_dim
+        self.y_index = y_index
         self.benchmark = BenchmarkGenerator(z_dim, hypervars, seed)
         self.can_supply = length
         np.random.seed(seed)
@@ -52,7 +53,7 @@ class BenchmarkTrajectory:
         s = self.benchmark.get_state()
         _, rewards = self.benchmark(actions)
         self.can_supply -= 1
-        return (s, actions, rewards)
+        return (s, actions, rewards[self.y_index])
 
 
 def generate_dataset(cfg: dict, clean: bool = False, strict_clean: bool = False) -> np.ndarray:
@@ -118,25 +119,28 @@ def generate_dataset(cfg: dict, clean: bool = False, strict_clean: bool = False)
     block_i = 0
     for i, h_num in enumerate(HYPERVARS):
         for j in range(TRAJECTORIES):
-            env = BenchmarkTrajectory(Z_DIM, TRAJECTORY_LENGTH, h_num, SEED)
-            z_blocks, a_blocks, output_blocks = map(np.array, reduce(
-                lambda aggregator, t: (aggregator[0] + [t[0]], aggregator[1] + [t[1]], aggregator[2] + [t[2]]),
-                list(env),
-                ([], [], [])
-            ))
-            output_blocks = output_blocks[:,(0 if OUTPUT_FUEL else 1)].reshape(-1, 1)  # else: OUTPUT_CONSUMPTION
+            env = BenchmarkTrajectory(Z_DIM, (0 if OUTPUT_FUEL else 1), TRAJECTORY_LENGTH, h_num, SEED)
+            blocks = np.array(list(env), dtype=[
+                ('z', 'f4', Z_DIM),
+                ('a', 'f4', A_DIM),
+                ('y', 'f4', 1)
+            ])
             # don't perform z-transformation on setpoint axis because that is constant
-            z_blocks = np.concatenate((z_blocks[:,:1], zscore(z_blocks[:,1:])), axis=1)
-            a_blocks = zscore(a_blocks)
-            output_blocks = zscore(output_blocks)
+            blocks['z'] = np.concatenate(
+                (blocks['z'][:,:1], zscore(blocks['z'][:,1:])),
+                axis=1
+            )
+            blocks['a'] = zscore(blocks['a'])
+            blocks['y'] = zscore(blocks['y'])
 
             slice_i = 0
             for blocksize in block_sizes[i][j]:
                 # get block-many data points
-                z_inputs = z_blocks[slice_i:slice_i + blocksize]
-                a_inputs = a_blocks[slice_i:slice_i + blocksize]
-                outputs = output_blocks[slice_i:slice_i + blocksize]
+                these_blocks = blocks[slice_i:slice_i + blocksize]
                 slice_i += blocksize
+                z_inputs = these_blocks['z']
+                a_inputs = these_blocks['a']
+                outputs = these_blocks['y'].reshape(-1,1)
 
                 if len(z_inputs) < WINDOW_LENGTH:
                     break
