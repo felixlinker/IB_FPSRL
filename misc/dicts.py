@@ -51,6 +51,10 @@ DEFAULT_POLICY_CFG = {
             'p': 2,     # Minkowski p-norm
         },
     },
+    'evaluation': {
+        'random_policies': 20,
+        'validation_output_file': '',
+    },
     'policy_output_file': ''
 }
 

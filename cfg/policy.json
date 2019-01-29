@@ -1,5 +1,8 @@
 {
     "fuel_cfg": "./cfg/fuel_data.json",
     "consumption_cfg": "./cfg/consumption_data.json",
+    "evaluation": {
+        "validation_output_file": "./evaluation/policy_metrics.json"
+    },
     "policy_output_file": "./policies/policy.npy"
 }

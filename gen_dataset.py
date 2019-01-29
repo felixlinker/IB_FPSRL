@@ -14,7 +14,7 @@ A_DIM = 3  # IB constant
 
 
 class BenchmarkGenerator:
-    def __init__(self, z_dim: int, hypervars: int, seed: int):
+    def __init__(self, z_dim: int, hypervars: int, seed: int = None):
         self.z_dim = z_dim
         self.benchmark = IDS.IDS(p=hypervars, inital_seed=seed)
 

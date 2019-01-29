@@ -1,5 +1,6 @@
 from ib_world_model import generate_world_model
 from gen_dataset import BenchmarkGenerator
+import eval_policy as evaluation
 import numpy as np
 from functools import reduce
 from misc.dicts import load_policy_cfg, load_data_cfg
@@ -38,8 +39,8 @@ class PolicyEvaluater:
         self.p = Pool(
             initializer=init_trajectory_generator,
             initargs=[ policy_args, {
-            'initial_setpoints': eval_setpoints,
-            'trajectory_len': eval_window + time_series_len - 1,
+                'initial_setpoints': eval_setpoints,
+                'trajectory_len': eval_window + time_series_len - 1,
             } ],
             maxtasksperchild=data_points_num  # don't recreate workers
         )
@@ -127,12 +128,14 @@ def generate_policy(cfg, clean = False, strict_clean = False):
 
     with PolicyEvaluater(cost_function, EVAL_SETPOINTS, FUTURE_WINDOW_SIZE,
         INITIAL_WEIGHT, T_0_INDEX + 1, PSO_ITERS * PARTICLES_NUM, policy_args) as evaluater:
-        cost, policy_weights = optimizer.optimize(
+        _, policy_weights = optimizer.optimize(
             evaluater,
             print_step=int(0.1 * PSO_ITERS),
             iters=PSO_ITERS,
             verbose=3
         )
+
+    evaluation.evaluate_policy(cfg, policy_weights)
 
     sample_policy.update(policy_weights)
     print(sample_policy)
