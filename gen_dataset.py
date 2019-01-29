@@ -9,7 +9,6 @@ from misc.dicts import load_data_cfg
 from misc.files import ensure_can_write
 from misc.args import parse_cfg_args
 from functools import reduce
-from scipy.stats import zscore
 
 A_DIM = 3  # IB constant
 
@@ -129,13 +128,6 @@ def generate_dataset(cfg: dict, clean: bool = False, strict_clean: bool = False)
         for j in range(TRAJECTORIES):
             env = BenchmarkTrajectory(Z_DIM, (0 if OUTPUT_FUEL else 1), TRAJECTORY_LENGTH, h_num, SEED)
             blocks = env.to_array()
-            # don't perform z-transformation on setpoint axis because that is constant
-            blocks['z'] = np.concatenate(
-                (blocks['z'][:,:1], zscore(blocks['z'][:,1:])),
-                axis=1
-            )
-            blocks['a'] = zscore(blocks['a'])
-            blocks['y'] = zscore(blocks['y'])
 
             slice_i = 0
             for blocksize in block_sizes[i][j]:
