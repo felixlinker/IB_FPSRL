@@ -12,7 +12,24 @@ import eval_world_model as evaluation
 
 
 class S_RNNCell(Layer):
+    '''
+    Implements a recursive cell as proposed in Duell, Udluft, Sterzing, 2012.
+    '''
     def __init__(self, units, state_size, self_input, z_dim, a_dim, **kwargs):
+        '''
+        Parameters
+        ----------
+        units : int
+            Number of neurons, i.e. output dimension of this cell
+        state_size : int
+            How many dimensions should the hidden state of this cell have?
+        self_input : boolean
+            True if the output of the neuron should be preserved in the state
+        z_dim : int
+            Dimensionality of the input state
+        a_dim : int
+            Dimensionality of the input action vector
+        '''
         self.units = units
         self.state_size = (units, state_size)
         self.self_input = self_input
@@ -44,11 +61,15 @@ class S_RNNCell(Layer):
         super().build(input_shape)
 
     def call(self, inputs, states):
+        # Detailed description of this cell can be found in Duell, Udluft,
+        # Sterzing, 2012, section 29.3
         y_prev = states[0]
         si_prev = states[1]
+        # split the input in state input ...
         z = inputs[:,:self.z_dim]
         if self.self_input:
             z = K.concatenate((z, y_prev), axis=1)
+        # ... and action input
         a = inputs[:,self.z_dim:]
         s = K.tanh(K.dot(si_prev, self.A_weights) + K.dot(z, self.C_weights))
         si = K.tanh(K.dot(s, self.B_weights) + K.dot(a, self.D_weights) + self.bias)
@@ -57,6 +78,30 @@ class S_RNNCell(Layer):
 
 
 def load_training_data(cfg, strict_clean, validation_split):
+    '''
+    Parameters
+    ----------
+    cfg : dict
+        Configuration dictionary
+    stict_clean : bool
+        Should data be re-created?
+    validation_split : float
+        Float in range [0,1); which percentage of the training data should be
+        used for validation?
+
+    Returns
+    -------
+    np.ndarray
+        All training data
+    np.ndarray
+        Training inputs
+    np.ndarray
+        Validation inputs
+    np.ndarray
+        Training outputs
+    np.ndarray
+        Validation outputs
+    '''
     training_data = generate_dataset(cfg, strict_clean, strict_clean)
     training_input = np.concatenate((training_data['z'], training_data['a']), axis=2)
     training_output = training_data['y']
@@ -72,6 +117,16 @@ def load_training_data(cfg, strict_clean, validation_split):
 
 
 def generate_world_model(cfg, clean = False, strict_clean = False):
+    '''
+    Generate a world model by training a recursive neural network on the time
+    series data provided by the `gen_dataset` script. Loads the model if at
+    the path given in the configuration dict there already is a model.
+
+    Returns
+    -------
+    Model
+        Keras model
+    '''
     write_to = cfg['model_output_file']
     gen_cfg = cfg['generation']
     learning_cfg = cfg['learning']

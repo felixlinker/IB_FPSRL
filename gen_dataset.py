@@ -14,28 +14,96 @@ A_DIM = 3  # IB constant
 
 
 class BenchmarkGenerator:
-    def __init__(self, z_dim: int, hypervars: int, seed: int = None):
+    '''
+    Generates observable states as well as rewards from applying action vectors
+    to the industrial benchmark. Call instances of this class like a function
+    to generate them.
+    '''
+    def __init__(self, z_dim: int, init_setpoint: int, seed: int = None):
+        '''
+        Parameters
+        ----------
+        z_dim : int
+            Index in range [0, 4]. How many elements of the observable state
+            should be included in the output?
+        init_setpoint : int
+            Initial setpoint of the industrial benchmark,
+        seed : int or None
+            Seed to be supplied to the industrial benchmark
+        '''
+        assert 0 <= z_dim and z_dim <= 4
         self.z_dim = z_dim
-        self.benchmark = IDS.IDS(p=hypervars, inital_seed=seed)
+        self.benchmark = IDS.IDS(p=init_setpoint, inital_seed=seed)
 
     def get_state(self):
+        '''
+        Returns
+        -------
+        np.ndarray
+            Array of shape `(self.z_dim,)` holding the current observable state
+            of the industrial benchmark
+        '''
         return self.benchmark.visibleState()[:self.z_dim]  # p, v, g, h
 
     def get_rewards(self):
+        '''
+        Returns
+        -------
+        np.ndarray
+            Array of shape `(2,)` with fuel costs and consumption costs of the
+            last tranisition of the industrial benchmark
+        '''
         state = self.benchmark.visibleState()
         return np.array(state[4:6])  # f, c
 
     def __call__(self, action_vector):
+        '''
+        Apply an action to the industrial benchmark thus transitioning one step.
+
+        Parameters
+        ----------
+        action_vector : numpy.ndarray
+            Array of shape `(3,)` to be applied to the industrial benchmark;
+            array must have entries for velocity, gain and shift in this order
+            in the range of [-1, 1]
+
+        Returns
+        -------
+        np.ndarray
+            New state
+        np.ndarray
+            Step rewards
+        '''
         assert np.shape(action_vector) == (A_DIM,)
         self.benchmark.step(action_vector)
         return (self.get_state(), self.get_rewards())
 
 
 class BenchmarkTrajectory:
-    def __init__(self, z_dim: int, y_index: int, length: int, hypervars: int, seed: int = None):
+    '''
+    Generates random industrial benchmark trajectories of fixed lengths mapped
+    to a set output variable.
+    '''
+    def __init__(self, z_dim: int, y_index: int, length: int, init_setpoint: int, seed: int = None):
+        '''
+        Parameters
+        ----------
+        z_dim : int
+            Index in range [0, 4]. How many elements of the observable state
+            should be included in the output?
+        y_index : int
+            Index in range [0, 1]. Which element of the outut should the rewards
+            be mapped to?
+        length : int
+            Length of the trajectory to generate
+        init_setpoint : int
+            Initial setpoint of the industrial bencharmk
+        seed : int or None
+            Seed for random number generation
+        '''
         self.z_dim = z_dim
         self.y_index = y_index
-        self.benchmark = BenchmarkGenerator(z_dim, hypervars, seed)
+        self.benchmark = BenchmarkGenerator(z_dim, init_setpoint, seed)
         self.can_supply = length
         if seed is not None:
             np.random.seed(seed)
@@ -47,6 +115,18 @@ class BenchmarkTrajectory:
         return self
 
     def __next__(self) -> np.ndarray:
+        '''
+        Applies a random action to the benchmark.
+
+        Returns
+        -------
+        np.ndarray
+            New state
+        np.ndarray
+            Action applied
+        float
+            Rewards in this step
+        '''
         if self.empty():
             raise StopIteration
         actions = 2 * np.random.rand(A_DIM) -1  # elements in [-1, 1]
@@ -56,6 +136,17 @@ class BenchmarkTrajectory:
         return (s, actions, rewards[self.y_index])
 
     def to_array(self) -> np.ndarray:
+        '''
+        Turn all steps left in this trajectory into a numpy record array.
+        The record will have three columns: `'z'` will holds states, `'a'` holds
+        the actions applied to them and `'y'` holds the reward yielded from that
+        application.
+
+        Returns
+        -------
+        np.ndarray
+            Trajectory
+        '''
         return np.array(list(self), dtype=[
             ('z', 'f4', self.z_dim),
             ('a', 'f4', A_DIM),
@@ -64,6 +155,21 @@ class BenchmarkTrajectory:
 
 
 def generate_dataset(cfg: dict, clean: bool = False, strict_clean: bool = False) -> np.ndarray:
+    '''
+    Generate a dataset for a world model to train on. Loads the dataset if at
+    the path given in the configuration dict there already is a dataset.
+
+    Data will be provided as a record array with three columns. Each row
+    represents a time series to be trained. The length of the times series is
+    determined by the config dict. The `'z'` column holds the states at each
+    point in time, `'a'` holds the action applied in that point in time and
+    `'y'` holds the rewards yielded from that.
+
+    Returns
+    -------
+    np.ndarray
+        Record array of time series
+    '''
     write_to = cfg['data_output_file']
     gen_cfg = cfg['generation']
     data_cfg = cfg['data']
@@ -103,6 +209,11 @@ def generate_dataset(cfg: dict, clean: bool = False, strict_clean: bool = False)
     assert OUTPUT_FUEL or OUTPUT_CONSUMPTION, 'at least one output must be given'
     assert not OUTPUT_FUEL or not OUTPUT_CONSUMPTION, 'only one output is supported'
 
+    # Time series will be generated on blocks. We generate a trajectory and
+    # split it into blocks of random size. Than we use a method of sliding
+    # window indices to get all the time series on every block. Pre-calculate
+    # all block sizes here. Details to this approach can be found in Duell,
+    # Udluft, Sterzing, 2012, chapter 29.3.4.
     block_sizes = [ [ [] for _ in range(TRAJECTORIES) ] for _ in range(N_HYPERVARS) ]
     global_windows_num = 0
     for hypervar_trajectories in block_sizes:
@@ -115,6 +226,7 @@ def generate_dataset(cfg: dict, clean: bool = False, strict_clean: bool = False)
                 datapoints_num -= block_size
                 block_size = random_blocksize()
 
+    # Output array
     data_blocks = np.empty(
         (global_windows_num,), dtype=[
             ('z', 'f4', (WINDOW_LENGTH, Z_DIM)),
@@ -140,6 +252,7 @@ def generate_dataset(cfg: dict, clean: bool = False, strict_clean: bool = False)
 
                 if len(z_inputs) < WINDOW_LENGTH:
                     break
+                # Number of time series in this iteration
                 windows_num = min(len(z_inputs), blocksize) - WINDOW_LENGTH +1
 
                 # Create index matrix for windows
