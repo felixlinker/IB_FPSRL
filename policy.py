@@ -1,6 +1,12 @@
 import numpy as np
 
 
+def load_policy(input_dim, rules_num, policy_cfg):
+    policy = Policy(input_dim, rules_num)
+    policy.update(policy_cfg)
+    return policy
+
+
 class Policy:
     SCALE_V = 1.0
     SCALE_G = 10.0

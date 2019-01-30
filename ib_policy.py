@@ -10,7 +10,7 @@ import argparse
 import pyswarms as ps
 import os
 from multiprocessing.pool import Pool
-from policy import Policy, TrajectoryGenerator, TrajectoryCosts
+from policy import load_policy, Policy, TrajectoryGenerator, TrajectoryCosts
 
 
 def mk_weights(weight_horizon, initial_weight):
@@ -78,7 +78,7 @@ class PolicyEvaluater:
 def generate_policy(cfg, clean = False, strict_clean = False):
     write_to = cfg['policy_output_file']
     if os.path.isfile(write_to) and not (clean or strict_clean):
-        return np.load(write_to)
+        return load_policy(*np.load(write_to))
 
     policy_cfg = cfg['policy']
     pso_cfg = cfg['particle_swarm']
@@ -143,7 +143,9 @@ def generate_policy(cfg, clean = False, strict_clean = False):
     print(sample_policy)
 
     ensure_can_write(write_to)
-    np.save(write_to, policy_weights)
+    np.save(write_to, (Z_DIM, RULES_NUM, policy_weights))
+
+    return sample_policy
 
 
 if __name__ == "__main__":
