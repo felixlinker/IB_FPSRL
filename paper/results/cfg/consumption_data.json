@@ -1,0 +1,12 @@
+{
+    "data": {
+        "output_consumption": true
+    },
+    "learning": {
+        "state_dim": 50,
+        "validation_output_file": "./evaluation/c_model_metrics.json",
+        "validation_example_file": "./evaluation/c_model_graph.png"
+    },
+    "data_output_file": "./data/c_blocks.npy",
+    "model_output_file": "./models/c_model.h5"
+}
