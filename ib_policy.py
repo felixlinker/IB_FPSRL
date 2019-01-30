@@ -33,7 +33,9 @@ def map_trajectories(policy_cfg):
 class PolicyEvaluater:
     def __init__(self, cost_function, eval_setpoints, eval_window, eval_weight, time_series_len, data_points_num, policy_args):
         self.cost_function = cost_function
+        assert 1 <= eval_window
         self.eval_window_indices = np.arange(eval_window).reshape((eval_window, 1)) + np.arange(time_series_len)
+        assert 1 <= eval_weight
         self.eval_window_weights = mk_weights(eval_window, eval_weight)
         self.time_series_len = time_series_len
         self.p = Pool(
